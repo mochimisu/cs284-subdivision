@@ -162,8 +162,12 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
+  glDeleteBuffers(1, &vertex_vbo);
+  glDeleteBuffers(1, &face_vbo);
 }
 
+float pos[9];
+unsigned int v_index[3];
 void Renderer::init(int argc,char** argv)
 {
   glutInit(&argc,argv);
@@ -214,8 +218,36 @@ void Renderer::init(int argc,char** argv)
   ambient = glGetUniformLocation(shaderprogram,"ambient");       
   diffuse = glGetUniformLocation(shaderprogram,"diffuse");       
   specular = glGetUniformLocation(shaderprogram,"specular");       
-  shininess = glGetUniformLocation(shaderprogram,"shininess");       
 
+  shininess = glGetUniformLocation(shaderprogram,"shininess");       
+  
+
+  pos[0] = 0;
+  pos[1] = 0;
+  pos[2] = 0;
+  pos[3] = 1;
+  pos[4] = 0;
+  pos[5] = 0;
+  pos[6] = 0;
+  pos[7] = 1;
+  pos[8] = 0;
+
+  v_index[0] = 0;
+  v_index[1] = 1;
+  v_index[2] = 2;
+  //bind vertices
+  glGenBuffers(1, &vertex_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float)*9, &pos[0], GL_STATIC_DRAW);
+
+  //bind faces
+  glGenBuffers(1, &face_vbo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, face_vbo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*3, &v_index[0], GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
   //Generate the mesh
   //loadOBJ(triangles, vertices, edges, "sphere.obj");
@@ -229,13 +261,8 @@ void Renderer::mainLoop()
 
 void Renderer::draw()
 {
-  //bind buffers later instead of calling glVertex w/e
-  glBegin(GL_TRIANGLES);
-  glVertex3f(0,0,0);
-  glVertex3f(1,0,0);
-  glVertex3f(0,1,0);
-
-  glEnd();
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, face_vbo);
+  glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
 
 }
 

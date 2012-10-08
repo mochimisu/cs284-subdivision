@@ -21,6 +21,11 @@ class Renderer {
     mat4 orientation;
     ImageSaver * imgSaver;
     int fCount;
+
+  private:
+    GLuint vertex_vbo;
+    GLuint face_vbo;
+
 };
 
 void setActiveRenderer(Renderer * newRenderer);
