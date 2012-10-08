@@ -3,6 +3,7 @@
 
 #include "renderer.h"
 #include "shaders.h"
+#include "mesh.h"
 
 // Constants to set up lighting on the teapot
 const GLfloat light_position[] = {0,5,10,1};    // Position of light 0
