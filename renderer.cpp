@@ -64,6 +64,8 @@ void display()
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
+  gluLookAt(0,0,5, 0,0,-1, 0,1,0);
+
   applyMat4(activeRenderer->orientation);    
   transformvec(light_position,light0); 
 	transformvec(light_position1,light1); 
@@ -101,12 +103,8 @@ void reshape(int w, int h)
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  //glOrtho(-100, 100, -100, 100, 100, -100);
-  //glOrtho(-10, 10, -10, 10, 10, -10);
-  
-  //glOrtho(-1.5, 1.5, -1.5, 1.5, 1.5, -1.5);
-
-  glOrtho(-1, 1, -2, 1, 1, -2);
+  //glOrtho(-1, 1, -2, 1, 1, -2);
+  gluPerspective(60, float(w)/float(h), 0.1, 99);
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -231,7 +229,6 @@ void Renderer::mainLoop()
 
 void Renderer::draw()
 {
-
   //bind buffers later instead of calling glVertex w/e
   glBegin(GL_TRIANGLES);
   glVertex3f(0,0,0);
