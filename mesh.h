@@ -3,13 +3,14 @@
 
 #include <algebra3.h>
 #include <vector>
+#include <GL/glu.h>
 
 class Vertex {
   public:
     Vertex() {};
     ~Vertex() {};
     vec3 pos;
-    vec3 norm;
+    Edge* edge;
 };
 
 class Edge {
@@ -19,6 +20,7 @@ class Edge {
     Edge* sibling;
     Edge* next;
     Vertex* vert;
+    vec3 norm;
 };
 
 class Triangle {
@@ -35,14 +37,17 @@ class Mesh {
     ~Mesh() {};
 
     void loadOBJ(string obj_fname);
+    void loadBuffers(GLuint& vertex_vbo, GLuint& normal_vbo,
+        GLuint& index_vbo);
+    int numElements();
 
-    std::vector<Vertex> vertices;
-    std::vector<Edge> edges;
-    std::vector<Triangle> triangles;
+    vector<Vertex> vertices;
+    vector<Edge> edges;
+    vector<Triangle> triangles;
   private:
-    std::vector<float> pos_buf;
-    std::vector<float> n_buf;
-    std::vector<float> index_buf;
+    vector<float> pos_buf;
+    vector<float> n_buf;
+    vector<int> index_buf;
 };
 
 #endif

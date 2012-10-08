@@ -85,11 +85,11 @@ void display()
   glUniform1i(islight,true);
 
   //Wireframe
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  //activeRenderer->draw();
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   //Normal
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
   activeRenderer->draw();
 
   glutSwapBuffers();
@@ -223,34 +223,24 @@ void Renderer::init(int argc,char** argv)
   shininess = glGetUniformLocation(shaderprogram,"shininess");       
   
   Mesh mesh;
-  mesh.loadOBJ("asdf");
+  mesh.loadOBJ("cube.obj");
 
-  pos[0] = 0;
-  pos[1] = 0;
-  pos[2] = 0;
-  pos[3] = 1;
-  pos[4] = 0;
-  pos[5] = 0;
-  pos[6] = 0;
-  pos[7] = 1;
-  pos[8] = 0;
-
-  v_index[0] = 0;
-  v_index[1] = 1;
-  v_index[2] = 2;
-  //bind vertices
+  //create vbos
   glGenBuffers(1, &vertex_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float)*9, &pos[0], GL_STATIC_DRAW);
-
-  //bind faces
   glGenBuffers(1, &face_vbo);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, face_vbo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int)*3, &v_index[0], GL_STATIC_DRAW);
+  glGenBuffers(1, &normal_vbo); 
 
   glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+  //glNormalPointer(GL_FLOAT, 0, 0);
+
+  mesh.loadBuffers(vertex_vbo, normal_vbo, face_vbo);
+  cout << mesh.numElements() << endl;
 
   //Generate the mesh
   //loadOBJ(triangles, vertices, edges, "sphere.obj");
@@ -265,7 +255,7 @@ void Renderer::mainLoop()
 void Renderer::draw()
 {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, face_vbo);
-  glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
 }
 

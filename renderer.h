@@ -24,6 +24,7 @@ class Renderer {
 
   private:
     GLuint vertex_vbo;
+    GLuint normal_vbo;
     GLuint face_vbo;
 
 };
