@@ -222,6 +222,8 @@ void Renderer::init(int argc,char** argv)
 
   shininess = glGetUniformLocation(shaderprogram,"shininess");       
   
+  Mesh mesh;
+  mesh.loadOBJ("asdf");
 
   pos[0] = 0;
   pos[1] = 0;

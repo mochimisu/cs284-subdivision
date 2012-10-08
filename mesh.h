@@ -6,16 +6,16 @@
 
 class Vertex {
   public:
-    Vertex();
-    ~Vertex();
+    Vertex() {};
+    ~Vertex() {};
     vec3 pos;
     vec3 norm;
 };
 
 class Edge {
   public:
-    Edge();
-    ~Edge();
+    Edge() {};
+    ~Edge() {};
     Edge* sibling;
     Edge* next;
     Vertex* vert;
@@ -23,15 +23,19 @@ class Edge {
 
 class Triangle {
   public:
-    Triangle();
-    ~Triangle();
+    Triangle() {};
+    ~Triangle() {};
     Edge* edge;
 };
 
 class Mesh {
   public:
-    Mesh();
-    ~Mesh();
+    Mesh() {};
+    Mesh(string obj_fname);
+    ~Mesh() {};
+
+    void loadOBJ(string obj_fname);
+
     std::vector<Vertex> vertices;
     std::vector<Edge> edges;
     std::vector<Triangle> triangles;

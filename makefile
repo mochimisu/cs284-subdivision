@@ -35,7 +35,7 @@ CXX := g++
 CXXFLAGS := -g -Wall -O3 -fmessage-length=0 -DGL_GLEXT_PROTOTYPES $(INCLUDE) $(MACROS)
 LDFLAGS := $(FRAMEWORK) $(LIBRARY)
 #-----------------------------------------
-%.o : %.cpp
+%.o : %.cpp %.h
 	@echo "Compiling .cpp to .o for $(PLATFORM) Platform:  $<" 
 	@$(CXX) -c -Wall $(CXXFLAGS) $< -o $@
 
