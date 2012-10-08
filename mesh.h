@@ -8,7 +8,6 @@ class Vertex {
   public:
     Vertex();
     ~Vertex();
-  private:
     vec3 pos;
     vec3 norm;
 };
@@ -33,10 +32,10 @@ class Mesh {
   public:
     Mesh();
     ~Mesh();
-  private:
     std::vector<Vertex> vertices;
     std::vector<Edge> edges;
     std::vector<Triangle> triangles;
+  private:
     std::vector<float> pos_buf;
     std::vector<float> n_buf;
     std::vector<float> index_buf;
