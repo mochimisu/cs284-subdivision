@@ -109,6 +109,67 @@ void Mesh::loadOBJ(string obj_fname)
     }
 
     //now actually generate our own data structure
+    vertices.clear();
+    edges.clear();
+    triangles.clear();
+    for (vector<vec3>::iterator v = verts.begin(); v != verts.end(); ++v)
+    {
+      Vertex new_vert = Vertex();
+      new_vert.pos = *v;
+
+      vertices.push_back(new_vert);
+    }
+
+    // assume normals for now, go back and generate normals for undef normals
+    // later
+    for (int i = 0; i < raw_faces.size(); ++i)
+    {
+      /*
+      vec3 cur_indices = raw_faces[i];
+      vec3 cur_n = raw_faces_normals[i];
+      vec3 navg = (normals[(int)cur_n[0]]
+          + normals[(int)cur_n[1]]
+          + normals[(int)cur_n[2]])/3.;
+      vec3 v1 = (verts[(int)cur_indices[1]]
+          - verts[(int)cur_indices[0]]);
+      vec3 v2 = (verts[(int)cur_indices[2]]
+          - verts[(int)cur_indices[0]]);
+      vec3 v12n = v1 ^ v2;
+
+      Edge e0 = Edge();
+      e0.vert = &vertices[(int)cur_indices[0]];
+      e0.norm = normals[(int)cur_n[0]];
+      edges.push_back(e0);
+      Edge * e0loc = &edges.back();
+
+      Edge e1 = Edge();
+      e1.vert = &vertices[(int)cur_indices[1]];
+      e1.norm = normals[(int)cur_n[1]];
+      edges.push_back(e1);
+      Edge * e1loc = &edges.back();
+
+      Edge e2 = Edge();
+      e2.vert = &vertices[(int)cur_indices[2]];
+      e2.norm = normals[(int)cur_n[2]];
+      edges.push_back(e2);
+      Edge * e2loc = &edges.back();
+
+      if ((v12n * navg) > 0)
+      {
+        //v12n aligned with navg
+        //0,1,2
+        e0loc->next = e1loc;
+        e1loc->next = e2loc;
+        e2loc->next = e0loc;
+      } else {
+        //0,2,1
+        e0loc->next = e2loc;
+        e2loc->next = e1loc;
+        e1loc->next = e0loc;
+      }
+      //fill in siblings later
+      */
+    }
 
   }
 }

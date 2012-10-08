@@ -5,12 +5,13 @@
 #include <vector>
 #include <GL/glu.h>
 
+
 class Vertex {
   public:
     Vertex() {};
     ~Vertex() {};
     vec3 pos;
-    Edge* edge;
+    //Edge* edge;
 };
 
 class Edge {
