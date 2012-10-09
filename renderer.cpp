@@ -174,7 +174,7 @@ float pos[9];
 unsigned int v_index[3];
 void Renderer::init(int argc,char** argv)
 {
-  if (argc < 1)
+  if (argc < 2)
   {
     cerr << "Missing input OBJ file" << endl;
     exit(1);
