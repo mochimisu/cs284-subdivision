@@ -167,6 +167,9 @@ void Mesh::loadOBJ(string obj_fname)
       }
 
       //fill in siblings later
+      // sketch:
+      // store vertices from->to for half edges; hashtable key: from, val: to
+      // check if "to" exists when making new half edge
     }
 
     generateBuffers();
@@ -242,49 +245,75 @@ Mesh Mesh::subdivide()
     Triangle& old_tri = triangles[i];
 
     int cur_old_edge_ind = old_tri.edge;
+    int cur_new_edge_ind = n_mesh.edges.size();
+
+    int new_vert_ind = n_mesh.vertices.size();
+
+    Edge old_edge0 = edges[cur_old_edge_ind];
+    Edge old_edge1 = edges[old_edge0.next];
+    Edge old_edge2 = edges[old_edge1.next];
+
+    Vertex new_v0;
+    new_v0.pos = (vertices[old_edge0.vert].pos\
+        + vertices[old_edge1.vert].pos)/2;
+    new_v0.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(new_v0);
+
+    Vertex new_v1;
+    new_v1.pos = vertices[old_edge1.vert].pos;
+    new_v1.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(new_v1);
+
+    Vertex new_v2;
+    new_v2.pos = (vertices[old_edge1.vert].pos\
+        + vertices[old_edge2.vert].pos)/2;
+    new_v2.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(new_v2);
+
+    Vertex new_v3;
+    new_v3.pos = vertices[old_edge2.vert].pos;
+    new_v3.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(new_v3);
+
+    Vertex new_v4;
+    new_v4.pos = (vertices[old_edge2.vert].pos\
+        + vertices[old_edge0.vert].pos)/2;
+    new_v4.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(new_v4);
+
+    Vertex new_v5;
+    new_v5.pos = vertices[old_edge0.vert].pos;
+    new_v5.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(new_v5);
+
     for (int j = 0; j < 3; ++j) 
     {
       Edge& cur_old_edge = edges[cur_old_edge_ind];
-      Edge& next_old_edge = edges[cur_old_edge.next];
-      Edge& next_next_old_edge = edges[next_old_edge.next];
 
       Triangle new_tri;
       new_tri.index = n_mesh.triangles.size();
 
       //share between siblings later
-      Vertex new_v0;
-      new_v0.pos = (vertices[cur_old_edge.vert].pos\
-          + vertices[next_old_edge.vert].pos)/2;
-      new_v0.index = n_mesh.vertices.size();
-      n_mesh.vertices.push_back(new_v0);
-
-      Vertex new_v1;
-      new_v1.pos = vertices[next_old_edge.vert].pos;
-      new_v1.index = n_mesh.vertices.size();
-      n_mesh.vertices.push_back(new_v1);
-
-      Vertex new_v2;
-      new_v2.pos = (vertices[next_old_edge.vert].pos\
-          + vertices[next_next_old_edge.vert].pos)/2;
-      new_v2.index = n_mesh.vertices.size();
-      n_mesh.vertices.push_back(new_v2);
+      // sketch of shared siblings:
+      // create hash of indices of edges (in old mesh #) of split edges
+      // check on creation of edge w siblings if hash exists
 
       Edge new_e0;
-      new_e0.vert = new_v0.index;
+      new_e0.vert = new_vert_ind + ((j*2)%6);
       new_e0.index = n_mesh.edges.size();
       new_e0.tri = new_tri.index;
       new_e0.next = new_e0.index+1;
       n_mesh.edges.push_back(new_e0);
 
       Edge new_e1;
-      new_e1.vert = new_v1.index;
+      new_e1.vert = new_vert_ind + ((j*2+1)%6);
       new_e1.index = n_mesh.edges.size();
       new_e1.tri = new_tri.index;
       new_e1.next = new_e1.index+1;
       n_mesh.edges.push_back(new_e1);
 
       Edge new_e2;
-      new_e2.vert = new_v2.index;
+      new_e2.vert = new_vert_ind + ((j*2+2)%6);
       new_e2.index = n_mesh.edges.size();
       new_e2.tri = new_tri.index;
       new_e2.next = new_e0.index;
@@ -295,8 +324,41 @@ Mesh Mesh::subdivide()
 
       cur_old_edge_ind = cur_old_edge.next;
     }
+    //4th tri
+    Triangle new_tri;
+    new_tri.index = n_mesh.triangles.size();
+
+    Edge new_e0;
+    new_e0.vert = new_v0.index;
+    new_e0.index = n_mesh.edges.size();
+    new_e0.tri = new_tri.index;
+    new_e0.next = new_e0.index+1;
+    new_e0.sibling = cur_new_edge_ind + 2;
+    n_mesh.edges.push_back(new_e0);
+
+    Edge new_e1;
+    new_e1.vert = new_v2.index;
+    new_e1.index = n_mesh.edges.size();
+    new_e1.tri = new_tri.index;
+    new_e1.next = new_e1.index+1;
+    new_e1.sibling = cur_new_edge_ind + 5;
+    n_mesh.edges.push_back(new_e1);
+
+    Edge new_e2;
+    new_e2.vert = new_v4.index;
+    new_e2.index = n_mesh.edges.size();
+    new_e2.tri = new_tri.index;
+    new_e2.next = new_e0.index;
+    new_e2.sibling = cur_new_edge_ind + 8;
+    n_mesh.edges.push_back(new_e2);
+
+    new_tri.edge = new_e0.index;
+    n_mesh.triangles.push_back(new_tri);
+
   }
 
+  //keep this to debug later
+/*
   cout << "orig:" << endl;
   cout << "vertices: " << vertices.size() << endl;
   cout << "edges: " << edges.size() << endl;
@@ -306,7 +368,8 @@ Mesh Mesh::subdivide()
   cout << "vertices: " << n_mesh.vertices.size() << endl;
   cout << "edges: " << n_mesh.edges.size() << endl;
   cout << "triangles: " << n_mesh.triangles.size() << endl;
-
+  cout << "=========" << endl;
+*/
 
 
 

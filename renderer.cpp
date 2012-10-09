@@ -104,7 +104,7 @@ void reshape(int w, int h)
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  glOrtho(-5, 5, -5, 5, 0.1, 99);
+  glOrtho(-2, 2, -2, 2, 0.1, 99);
   //gluPerspective(60, float(w)/float(h), 0.1, 99);
 }
 
@@ -113,6 +113,9 @@ void keyboard(unsigned char key, int x, int y)
   switch(key) {
     case 27:
       exit(0);
+      break;
+    case 'q':
+      activeRenderer->mesh = activeRenderer->mesh.subdivide();
       break;
   }
   glutPostRedisplay();
@@ -171,12 +174,18 @@ float pos[9];
 unsigned int v_index[3];
 void Renderer::init(int argc,char** argv)
 {
+  if (argc < 1)
+  {
+    cerr << "Missing input OBJ file" << endl;
+    exit(1);
+  }
+
   glutInit(&argc,argv);
   glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH|GLUT_MULTISAMPLE);
 
   glutInitWindowSize(width, height); 
   glutInitWindowPosition(0,0); 
-  glutCreateWindow("CS283 HW1");
+  glutCreateWindow("CS284 Subdivision");
 
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
@@ -223,9 +232,7 @@ void Renderer::init(int argc,char** argv)
   shininess = glGetUniformLocation(shaderprogram,"shininess");       
   
   mesh.init();
-  mesh.loadOBJ("cube.obj");
-
-  mesh = mesh.subdivide();
+  mesh.loadOBJ(argv[1]);
 }
 
 void Renderer::mainLoop() 
