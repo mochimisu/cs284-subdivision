@@ -5,11 +5,16 @@
 #include <vector>
 #include <GL/glu.h>
 
+class Vertex;
+class Edge;
+class Triangle;
+class Mesh;
 
 class Vertex {
   public:
     Vertex() {};
     ~Vertex() {};
+    int index;
     vec3 pos;
     //Edge* edge;
 };
@@ -18,29 +23,34 @@ class Edge {
   public:
     Edge() {};
     ~Edge() {};
-    Edge* sibling;
-    Edge* next;
-    Vertex* vert;
+    int index;
+    int sibling;
+    int next;
+    int vert;
     vec3 norm;
+    int tri;
 };
 
 class Triangle {
   public:
     Triangle() {};
     ~Triangle() {};
-    Edge* edge;
+    int index;
+    int edge;
 };
 
 class Mesh {
   public:
-    Mesh() {};
+    Mesh();
     Mesh(string obj_fname);
     ~Mesh() {};
 
+    void init();
     void loadOBJ(string obj_fname);
-    void loadBuffers(GLuint& vertex_vbo, GLuint& normal_vbo,
-        GLuint& index_vbo);
-    int numElements();
+    void generateBuffers();
+    void draw();
+
+    Mesh subdivide();
 
     vector<Vertex> vertices;
     vector<Edge> edges;
@@ -49,6 +59,10 @@ class Mesh {
     vector<float> pos_buf;
     vector<float> n_buf;
     vector<int> index_buf;
+
+    GLuint vertex_vbo;
+    GLuint face_vbo;
+    GLuint normal_vbo;
 };
 
 #endif

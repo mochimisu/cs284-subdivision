@@ -69,7 +69,7 @@ void display()
 
   applyMat4(activeRenderer->orientation);    
   transformvec(light_position,light0); 
-	transformvec(light_position1,light1); 
+  transformvec(light_position1,light1); 
 
   glUniform4fv(light0posn,1,light0); 
   glUniform4fv(light0color,1,light_specular); 
@@ -104,8 +104,8 @@ void reshape(int w, int h)
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  //glOrtho(-1, 1, -2, 1, 1, -2);
-  gluPerspective(60, float(w)/float(h), 0.1, 99);
+  glOrtho(-5, 5, -5, 5, 0.1, 99);
+  //gluPerspective(60, float(w)/float(h), 0.1, 99);
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -222,29 +222,10 @@ void Renderer::init(int argc,char** argv)
 
   shininess = glGetUniformLocation(shaderprogram,"shininess");       
   
-  Mesh mesh;
+  mesh.init();
   mesh.loadOBJ("cube.obj");
 
-  //create vbos
-  glGenBuffers(1, &vertex_vbo);
-  glGenBuffers(1, &face_vbo);
-  glGenBuffers(1, &normal_vbo); 
-
-  glBindBuffer(GL_ARRAY_BUFFER, vertex_vbo);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-  glBindBuffer(GL_ARRAY_BUFFER, normal_vbo);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-  //glNormalPointer(GL_FLOAT, 0, 0);
-
-  mesh.loadBuffers(vertex_vbo, normal_vbo, face_vbo);
-  cout << mesh.numElements() << endl;
-
-  //Generate the mesh
-  //loadOBJ(triangles, vertices, edges, "sphere.obj");
-
+  mesh = mesh.subdivide();
 }
 
 void Renderer::mainLoop() 
@@ -254,9 +235,7 @@ void Renderer::mainLoop()
 
 void Renderer::draw()
 {
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, face_vbo);
-  glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
+  mesh.draw();
 }
 
 void Renderer::saveFrame() {

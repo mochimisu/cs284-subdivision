@@ -4,6 +4,7 @@
 #include <GL/glut.h>   
 #include "imageSaver.h"
 #include <algebra3.h>
+#include "mesh.h"
 
 class Renderer {
 
@@ -21,6 +22,8 @@ class Renderer {
     mat4 orientation;
     ImageSaver * imgSaver;
     int fCount;
+
+    Mesh mesh;
 
   private:
     GLuint vertex_vbo;
