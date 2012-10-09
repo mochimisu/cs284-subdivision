@@ -16,7 +16,6 @@ class Vertex {
     ~Vertex() {};
     int index;
     vec3 pos;
-    //Edge* edge;
 };
 
 class Edge {
