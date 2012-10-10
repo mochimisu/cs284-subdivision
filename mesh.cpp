@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <utility>
+#include <map>
 
 Mesh::Mesh()
 {
@@ -11,6 +13,10 @@ Mesh::Mesh()
 
 void Mesh::init()
 {
+  vertices.clear();
+  edges.clear();
+  triangles.clear();
+
   //create vbos
   glGenBuffers(1, &vertex_vbo);
   glGenBuffers(1, &face_vbo);
@@ -32,6 +38,7 @@ void Mesh::loadOBJ(string obj_fname)
   
   vector<vec3> raw_faces;
   vector<vec3> raw_faces_normals;
+
 
   ifstream inpfile(obj_fname.c_str());
   if (!inpfile.is_open()) {
@@ -68,7 +75,7 @@ void Mesh::loadOBJ(string obj_fname)
         int n1, n2, n3;
         //find "type"
         int numSlash = 0;
-        for (int i=0; i<splitline[1].length(); i++) {
+        for (unsigned int i=0; i<splitline[1].length(); i++) {
           if(splitline[1][i] == '/')
             numSlash++;
         }
@@ -95,6 +102,12 @@ void Mesh::loadOBJ(string obj_fname)
     vertices.clear();
     edges.clear();
     triangles.clear();
+
+    // vector to maintain siblings
+    // tuple is ("from" vertex, "to" vertex)
+    // value is edge num
+    map<pair<int,int>,int> edge_map;
+
     int i=0;
     for (vector<vec3>::iterator v = verts.begin(); v != verts.end(); ++v)
     {
@@ -107,16 +120,16 @@ void Mesh::loadOBJ(string obj_fname)
 
     // assume normals for now, go back and generate normals for undef normals
     // later
-    for (int i = 0; i < raw_faces.size(); ++i)
+    for (unsigned int i = 0; i < raw_faces.size(); ++i)
     {
-      for (int j = 0; j < 3; ++j)
+      for (unsigned int j = 0; j < 3; ++j)
       {
         edges.push_back(Edge());
       }
       triangles.push_back(Triangle());
     }
     int edge_n = 0;
-    for (int i = 0; i < raw_faces.size(); ++i)
+    for (unsigned int i = 0; i < raw_faces.size(); ++i)
     {
       vec3 cur_indices = raw_faces[i];
       vec3 cur_n = raw_faces_normals[i];
@@ -137,18 +150,21 @@ void Mesh::loadOBJ(string obj_fname)
       e0.vert = (int)cur_indices[0];
       e0.norm = normals[(int)cur_n[0]];
       e0.tri = tri.index;
+      e0.sibling = -1;
 
       Edge& e1 = edges[edge_n++];
       e1.index = edge_n-1;
       e1.vert = (int)cur_indices[1];
       e1.norm = normals[(int)cur_n[1]];
       e1.tri = tri.index;
+      e1.sibling = -1;
 
       Edge& e2 = edges[edge_n++];
       e2.index = edge_n-1;
       e2.vert = (int)cur_indices[2];
       e2.norm = normals[(int)cur_n[2]];
       e2.tri = tri.index;
+      e2.sibling = -1;
 
       tri.edge = e0.index;
 
@@ -166,10 +182,31 @@ void Mesh::loadOBJ(string obj_fname)
         e1.next = e0.index;
       }
 
-      //fill in siblings later
-      // sketch:
-      // store vertices from->to for half edges; hashtable key: from, val: to
-      // check if "to" exists when making new half edge
+      edge_map[make_pair(e0.vert, edges[e0.next].vert)] = e0.index;
+      edge_map[make_pair(e1.vert, edges[e1.next].vert)] = e1.index;
+      edge_map[make_pair(e2.vert, edges[e2.next].vert)] = e2.index;
+
+      pair<int,int> rev_edge = make_pair(edges[e0.next].vert, e0.vert);
+      if (edge_map.count(rev_edge) > 0)
+      {
+        e0.sibling = edge_map[rev_edge];
+        edges[e0.sibling].sibling = e0.index;
+      }
+
+      rev_edge = make_pair(edges[e1.next].vert, e1.vert);
+      if (edge_map.count(rev_edge) > 0)
+      {
+        e1.sibling = edge_map[rev_edge];
+        edges[e1.sibling].sibling = e1.index;
+      }
+
+      rev_edge = make_pair(edges[e2.next].vert, e2.vert);
+      if (edge_map.count(rev_edge) > 0)
+      {
+        e2.sibling = edge_map[rev_edge];
+        edges[e2.sibling].sibling = e2.index;
+      }
+
     }
 
     generateBuffers();
@@ -183,13 +220,13 @@ void Mesh::generateBuffers()
   n_buf.clear();
   index_buf.clear();
 
-  int index = 0;
+  //int index = 0;
   for (vector<Vertex>::iterator v = vertices.begin(); v != vertices.end(); ++v)
   {
     pos_buf.push_back(v->pos[0]);
     pos_buf.push_back(v->pos[1]);
     pos_buf.push_back(v->pos[2]);
-    v->index = index++;
+    //v->index = index++;
   }
 
   for (vector<Triangle>::iterator t = triangles.begin(); t != triangles.end();
@@ -199,7 +236,7 @@ void Mesh::generateBuffers()
 
     //loop around edges
     //assuming triangle
-    for (int i = 0; i < 3; ++i)
+    for (unsigned int i = 0; i < 3; ++i)
     {
       index_buf.push_back(vertices[cur_edge->vert].index);
       cur_edge = &edges[cur_edge->next];
@@ -239,126 +276,160 @@ Mesh Mesh::subdivide()
   Mesh n_mesh;
   n_mesh.init();
 
-  //go through each triangle, and split each edge
-  for (int i = 0; i < triangles.size(); ++i)
+  //copy vertices from old mesh
+  n_mesh.vertices = vertices;
+
+  //go through each edge, and compute a new vertex to split on
+  map<int, int> edge_split_verts;
+  for (unsigned int i = 0; i < edges.size(); ++i)
+  {
+    if (edge_split_verts.count(edges[i].sibling) > 0)
+    {
+      //edge_split_vertss[i] = edge_split_verts[edges[i].sibling];
+      continue;
+    }
+    Vertex v_split;
+    v_split.pos = (vertices[edges[i].vert].pos \
+        + vertices[edges[edges[i].next].vert].pos)/2;
+    v_split.index = n_mesh.vertices.size();
+    n_mesh.vertices.push_back(v_split);
+    edge_split_verts[i] = v_split.index;
+  }
+
+  //split each edge, aling w their sibling edge
+  // key: old edge index, value: <n_mesh index, n_mesh index>
+  map<int, pair<int,int> > edge_splits;
+  for (unsigned int i = 0; i < edges.size(); ++i)
+  {
+    //sibling somewhere
+    if (edge_split_verts.count(i) == 0)
+      continue;
+
+    Edge cur_edge = edges[i];
+    Edge new_e0 = Edge();
+    new_e0.vert = cur_edge.vert;
+    new_e0.index = n_mesh.edges.size();
+    new_e0.sibling = -1;
+    new_e0.next = -1;
+    new_e0.tri = -1;
+    n_mesh.edges.push_back(new_e0);
+
+    Edge new_e1 = Edge();
+    new_e1.vert = edge_split_verts[i];
+    new_e1.index = n_mesh.edges.size();
+    new_e1.sibling = -1;
+    new_e1.next = -1;
+    new_e1.tri = -1;
+    n_mesh.edges.push_back(new_e1);
+
+    if (edges[i].sibling >= 0) 
+    {
+      Edge sibling_edge = edges[edges[i].sibling];
+      Edge new_e2 = Edge();
+      new_e2.vert = sibling_edge.vert;
+      new_e2.index = n_mesh.edges.size();
+      n_mesh.edges.push_back(new_e2);
+
+      Edge new_e3 = Edge();
+      new_e3.vert = edge_split_verts[i];
+      new_e3.index = n_mesh.edges.size();
+      n_mesh.edges.push_back(new_e3);
+
+      n_mesh.edges[new_e0.index].sibling = new_e3.index;
+      n_mesh.edges[new_e3.index].sibling = new_e0.index;
+      n_mesh.edges[new_e1.index].sibling = new_e2.index;
+      n_mesh.edges[new_e2.index].sibling = new_e1.index;
+      edge_splits[sibling_edge.index] = make_pair(new_e2.index, new_e3.index);
+    }
+
+    edge_splits[i] = make_pair(new_e0.index, new_e1.index);
+  }
+
+  // go through each triangle and make our 4 new triangles
+  for (unsigned int i = 0; i < triangles.size(); ++i)
   {
     Triangle& old_tri = triangles[i];
 
-    int cur_old_edge_ind = old_tri.edge;
-    int cur_new_edge_ind = n_mesh.edges.size();
-
-    int new_vert_ind = n_mesh.vertices.size();
-
-    Edge old_edge0 = edges[cur_old_edge_ind];
+    Edge old_edge0 = edges[old_tri.edge];
     Edge old_edge1 = edges[old_edge0.next];
     Edge old_edge2 = edges[old_edge1.next];
 
-    Vertex new_v0;
-    new_v0.pos = (vertices[old_edge0.vert].pos\
-        + vertices[old_edge1.vert].pos)/2;
-    new_v0.index = n_mesh.vertices.size();
-    n_mesh.vertices.push_back(new_v0);
+    pair<int,int> split_edge[3] = {
+      edge_splits[old_edge0.index],
+      edge_splits[old_edge1.index],
+      edge_splits[old_edge2.index] };
 
-    Vertex new_v1;
-    new_v1.pos = vertices[old_edge1.vert].pos;
-    new_v1.index = n_mesh.vertices.size();
-    n_mesh.vertices.push_back(new_v1);
-
-    Vertex new_v2;
-    new_v2.pos = (vertices[old_edge1.vert].pos\
-        + vertices[old_edge2.vert].pos)/2;
-    new_v2.index = n_mesh.vertices.size();
-    n_mesh.vertices.push_back(new_v2);
-
-    Vertex new_v3;
-    new_v3.pos = vertices[old_edge2.vert].pos;
-    new_v3.index = n_mesh.vertices.size();
-    n_mesh.vertices.push_back(new_v3);
-
-    Vertex new_v4;
-    new_v4.pos = (vertices[old_edge2.vert].pos\
-        + vertices[old_edge0.vert].pos)/2;
-    new_v4.index = n_mesh.vertices.size();
-    n_mesh.vertices.push_back(new_v4);
-
-    Vertex new_v5;
-    new_v5.pos = vertices[old_edge0.vert].pos;
-    new_v5.index = n_mesh.vertices.size();
-    n_mesh.vertices.push_back(new_v5);
-
-    for (int j = 0; j < 3; ++j) 
+    //create new edges
+    // 0: 0->1; 1: 1->2; 2: 2->0
+    // 3: 0->2; 4: 1->0; 5: 2->1
+    int new_edge[6];
+    for (unsigned int j = 0; j < 6; ++j)
     {
-      Edge& cur_old_edge = edges[cur_old_edge_ind];
-
-      Triangle new_tri;
-      new_tri.index = n_mesh.triangles.size();
-
-      //share between siblings later
-      // sketch of shared siblings:
-      // create hash of indices of edges (in old mesh #) of split edges
-      // check on creation of edge w siblings if hash exists
-
-      Edge new_e0;
-      new_e0.vert = new_vert_ind + ((j*2)%6);
-      new_e0.index = n_mesh.edges.size();
-      new_e0.tri = new_tri.index;
-      new_e0.next = new_e0.index+1;
-      n_mesh.edges.push_back(new_e0);
-
-      Edge new_e1;
-      new_e1.vert = new_vert_ind + ((j*2+1)%6);
-      new_e1.index = n_mesh.edges.size();
-      new_e1.tri = new_tri.index;
-      new_e1.next = new_e1.index+1;
-      n_mesh.edges.push_back(new_e1);
-
-      Edge new_e2;
-      new_e2.vert = new_vert_ind + ((j*2+2)%6);
-      new_e2.index = n_mesh.edges.size();
-      new_e2.tri = new_tri.index;
-      new_e2.next = new_e0.index;
-      n_mesh.edges.push_back(new_e2);
-
-      new_tri.edge = new_e0.index;
-      n_mesh.triangles.push_back(new_tri);
-
-      cur_old_edge_ind = cur_old_edge.next;
+      Edge n_edge = Edge();
+      n_edge.index = n_mesh.edges.size();
+      n_edge.vert = n_mesh.edges[split_edge[j%3].second].vert;
+      n_mesh.edges.push_back(n_edge);
+      new_edge[j] = n_edge.index;
     }
-    //4th tri
-    Triangle new_tri;
-    new_tri.index = n_mesh.triangles.size();
 
-    Edge new_e0;
-    new_e0.vert = new_v0.index;
-    new_e0.index = n_mesh.edges.size();
-    new_e0.tri = new_tri.index;
-    new_e0.next = new_e0.index+1;
-    new_e0.sibling = cur_new_edge_ind + 2;
-    n_mesh.edges.push_back(new_e0);
+    n_mesh.edges[new_edge[0]].sibling = new_edge[4];
+    n_mesh.edges[new_edge[4]].sibling = new_edge[0];
+    n_mesh.edges[new_edge[1]].sibling = new_edge[5];
+    n_mesh.edges[new_edge[5]].sibling = new_edge[1];
+    n_mesh.edges[new_edge[2]].sibling = new_edge[3];
+    n_mesh.edges[new_edge[3]].sibling = new_edge[2];
 
-    Edge new_e1;
-    new_e1.vert = new_v2.index;
-    new_e1.index = n_mesh.edges.size();
-    new_e1.tri = new_tri.index;
-    new_e1.next = new_e1.index+1;
-    new_e1.sibling = cur_new_edge_ind + 5;
-    n_mesh.edges.push_back(new_e1);
+    // make the triangles!
+    //0: s2.1->s0.0->n3
+    //1: s0.1->s1.0->n4
+    //2: s1.1->s2.0->n5
+    //3: n0->n1->n2
+    Triangle tri0 = Triangle();
+    tri0.index = n_mesh.triangles.size();
+    tri0.edge = split_edge[2].second;
+    n_mesh.edges[split_edge[2].second].next = split_edge[0].first;
+    n_mesh.edges[split_edge[0].first].next = new_edge[3];
+    n_mesh.edges[new_edge[3]].next = split_edge[2].second;
+    n_mesh.edges[split_edge[2].second].tri = tri0.index;
+    n_mesh.edges[split_edge[0].second].tri = tri0.index;
+    n_mesh.edges[new_edge[3]].tri = tri0.index;
+    n_mesh.triangles.push_back(tri0);
 
-    Edge new_e2;
-    new_e2.vert = new_v4.index;
-    new_e2.index = n_mesh.edges.size();
-    new_e2.tri = new_tri.index;
-    new_e2.next = new_e0.index;
-    new_e2.sibling = cur_new_edge_ind + 8;
-    n_mesh.edges.push_back(new_e2);
+    for (unsigned int j = 0; j < 3; ++j)
+    {
+      int sfirst = (2+j)%3;
+      int ssecond = j%3;
+      int nthird = j+3;
+      Triangle n_tri = Triangle();
+      n_tri.index = n_mesh.triangles.size();
+      n_tri.edge = split_edge[sfirst].second;
+      n_mesh.edges[split_edge[sfirst].second].next = split_edge[ssecond].first;
+      n_mesh.edges[split_edge[ssecond].first].next = new_edge[nthird];
+      n_mesh.edges[new_edge[nthird]].next = split_edge[sfirst].second;
 
-    new_tri.edge = new_e0.index;
-    n_mesh.triangles.push_back(new_tri);
+      n_mesh.edges[split_edge[sfirst].second].tri = n_tri.index;
+      n_mesh.edges[split_edge[ssecond].first].tri = n_tri.index;
+      n_mesh.edges[new_edge[nthird]].tri = n_tri.index;
+      n_mesh.triangles.push_back(n_tri);
+    }
+
+    // 4th tri
+    Triangle n_tri = Triangle();
+    n_tri.index = n_mesh.triangles.size();
+    n_tri.edge = new_edge[0];
+    n_mesh.edges[new_edge[0]].next = new_edge[1];
+    n_mesh.edges[new_edge[1]].next = new_edge[2];
+    n_mesh.edges[new_edge[2]].next = new_edge[0];
+
+    n_mesh.edges[new_edge[0]].tri = n_tri.index;
+    n_mesh.edges[new_edge[1]].tri = n_tri.index;
+    n_mesh.edges[new_edge[2]].tri = n_tri.index;
+    n_mesh.triangles.push_back(n_tri);
 
   }
 
   //keep this to debug later
-/*
+#ifdef DEBUG
   cout << "orig:" << endl;
   cout << "vertices: " << vertices.size() << endl;
   cout << "edges: " << edges.size() << endl;
@@ -369,7 +440,18 @@ Mesh Mesh::subdivide()
   cout << "edges: " << n_mesh.edges.size() << endl;
   cout << "triangles: " << n_mesh.triangles.size() << endl;
   cout << "=========" << endl;
-*/
+
+  for (unsigned int i = 0; i < n_mesh.edges.size(); ++i)
+  {
+    cout << "e: " \
+      << "|" << n_mesh.edges[i].index \
+      << "|" << n_mesh.edges[i].sibling \
+      << "|" << n_mesh.edges[i].next \
+      << "|" << n_mesh.edges[i].vert \
+      << "|" << n_mesh.edges[i].tri \
+      << endl;
+  }
+#endif
 
 
 
