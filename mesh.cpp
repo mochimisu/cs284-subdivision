@@ -292,8 +292,18 @@ Mesh Mesh::subdivide()
     // new edge vertex = 3/8*(sum of two endpts of edge)+1/8*(sum of other
     //   two points that form the triangles w/ this edge)
     Vertex v_split;
-    v_split.pos = (vertices[edges[i].vert].pos \
-        + vertices[edges[edges[i].next].vert].pos)/2;
+    vec3 sum_endpts = (vertices[edges[i].vert].pos \
+        + vertices[edges[edges[i].next].vert].pos);
+    if (edges[i].sibling >= 0)
+    {
+      vec3 sum_conntri = (vertices[edges[edges[edges[i].next].next].vert].pos \
+          +vertices[edges[edges[edges[edges[i].sibling].next].next].vert].pos);
+      v_split.pos = (0.375*sum_endpts) + (0.125*sum_conntri);
+    } else {
+      vec3 conntri = vertices[edges[edges[edges[i].next].next].vert].pos;
+      v_split.pos = (3./7.*sum_endpts) + (conntri/7.);
+    }
+
     v_split.index = n_mesh.vertices.size();
     n_mesh.vertices.push_back(v_split);
     edge_split_verts[i] = v_split.index;
