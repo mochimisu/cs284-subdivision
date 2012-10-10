@@ -288,6 +288,9 @@ Mesh Mesh::subdivide()
       //edge_split_vertss[i] = edge_split_verts[edges[i].sibling];
       continue;
     }
+    // for loop subdivision, be smarter about this
+    // new edge vertex = 3/8*(sum of two endpts of edge)+1/8*(sum of other
+    //   two points that form the triangles w/ this edge)
     Vertex v_split;
     v_split.pos = (vertices[edges[i].vert].pos \
         + vertices[edges[edges[i].next].vert].pos)/2;
@@ -301,10 +304,13 @@ Mesh Mesh::subdivide()
   map<int, pair<int,int> > edge_splits;
   for (unsigned int i = 0; i < edges.size(); ++i)
   {
-    //sibling somewhere
     if (edge_split_verts.count(i) == 0)
       continue;
 
+    // for loop subdivision, average all connected edges in a map
+    // moved vertex = (1-n)um neighbor verts*s*old + s*sum of neighbor vertices
+    // n=3 -> s=3/16
+    // n>3 -> s=1/n*(5/8 - (3/8 + 1/4*cos(2pi/n))^2)
     Edge cur_edge = edges[i];
     Edge new_e0 = Edge();
     new_e0.vert = cur_edge.vert;
