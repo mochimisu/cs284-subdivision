@@ -288,12 +288,10 @@ Mesh Mesh::subdivide()
       //edge_split_vertss[i] = edge_split_verts[edges[i].sibling];
       continue;
     }
-    // for loop subdivision, be smarter about this
-    // new edge vertex = 3/8*(sum of two endpts of edge)+1/8*(sum of other
-    //   two points that form the triangles w/ this edge)
     Vertex v_split;
     vec3 sum_endpts = (vertices[edges[i].vert].pos \
         + vertices[edges[edges[i].next].vert].pos);
+    //Loop subdivision: Edge points
     if (edges[i].sibling >= 0)
     {
       int ind_conntri0 = edges[edges[edges[i].next].next].vert;
@@ -314,15 +312,17 @@ Mesh Mesh::subdivide()
   //split each edge, aling w their sibling edge
   // key: old edge index, value: <n_mesh index, n_mesh index>
   map<int, pair<int,int> > edge_splits;
+  // map to store seen edges
+  // key: <vertex given weight, "other" vertex>
+  // val: seen
+  map<pair<int,int>, int> seen_edges;
+  vector<vector<vec3> > vertex_weights;
+  vertex_weights.resize(vertices.size());
   for (unsigned int i = 0; i < edges.size(); ++i)
   {
     if (edge_split_verts.count(i) == 0)
       continue;
 
-    // for loop subdivision, average all connected edges in a map
-    // moved vertex = (1-n)um neighbor verts*s*old + s*sum of neighbor vertices
-    // n=3 -> s=3/16
-    // n>3 -> s=1/n*(5/8 - (3/8 + 1/4*cos(2pi/n))^2)
     Edge cur_edge = edges[i];
     Edge new_e0 = Edge();
     new_e0.vert = cur_edge.vert;
@@ -360,7 +360,44 @@ Mesh Mesh::subdivide()
       edge_splits[sibling_edge.index] = make_pair(new_e2.index, new_e3.index);
     }
 
+    // weights for vertex pts
+    if (seen_edges.count(make_pair(i, edges[i].next)) == 0)
+    {
+      seen_edges[make_pair(edges[i].vert, edges[edges[i].next].vert)] = 1;
+      vec3 neighbor_vert = vertices[edges[edges[i].next].vert].pos;
+      vertex_weights[edges[i].vert].push_back(neighbor_vert);
+    }
+
+    if (seen_edges.count(make_pair(edges[i].next, i)) == 0)
+    {
+      seen_edges[make_pair(edges[edges[i].next].vert, edges[i].vert)] = 1;
+      vec3 cur_vert = vertices[edges[i].vert].pos;
+      vertex_weights[edges[edges[i].next].vert].push_back(cur_vert);
+    }
+
     edge_splits[i] = make_pair(new_e0.index, new_e1.index);
+  }
+
+  //Loop Subdivision: vertex points
+  for (unsigned int i = 0; i < vertex_weights.size(); ++i)
+  {
+    int n = vertex_weights[i].size();
+    vec3 sum = vec3(0,0,0);
+    for (unsigned int j = 0; j < vertex_weights[i].size(); ++j)
+    {
+      sum += vertex_weights[i][j];
+    }
+
+    float cos_term = 0.375 + 0.25*cos(2*M_PI/((float)n));
+    float an = 0.375 + cos_term*cos_term;
+
+    vec3 old_pos = vertices[i].pos;
+
+    vec3 moved_vert_pos = an*old_pos + (1-an)*sum/n;
+
+    n_mesh.vertices[i].pos = moved_vert_pos;
+
+      
   }
 
   // go through each triangle and make our 4 new triangles
