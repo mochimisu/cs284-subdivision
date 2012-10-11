@@ -490,6 +490,7 @@ Mesh Mesh::subdivide()
 
   }
 
+#ifdef CLEANUP_EDGES
   //go through edges and find broken ones...
   for (unsigned int i = 0; i < n_mesh.edges.size(); ++i)
   {
@@ -512,6 +513,7 @@ Mesh Mesh::subdivide()
       n_mesh.edges.erase(n_mesh.edges.begin()+i);
     }
   }
+#endif
 
 
   //keep this to debug later

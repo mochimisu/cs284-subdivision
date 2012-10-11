@@ -16,6 +16,8 @@ class Renderer {
     void draw();
     void mainLoop();
     void saveFrame();
+    void toggleDrawNormal();
+    void toggleDrawWireframe();
 
     int width, height;
     vec2 mousePos;
@@ -25,10 +27,13 @@ class Renderer {
 
     Mesh mesh;
 
-  private:
+  protected:
     GLuint vertex_vbo;
     GLuint normal_vbo;
     GLuint face_vbo;
+
+    bool draw_normal;
+    bool draw_wireframe;
 
 };
 

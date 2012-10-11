@@ -85,14 +85,6 @@ void display()
   glUniform1fv(shininess,1,high); 
   glUniform1i(islight,true);
 
-  //Normal
-  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-  activeRenderer->draw();
-
-  //Wireframe
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  glPolygonOffset(1,1);
-  glUniform4fv(diffuse,1,blue); 
   activeRenderer->draw();
 
   glutSwapBuffers();
@@ -119,6 +111,12 @@ void keyboard(unsigned char key, int x, int y)
       break;
     case 'q':
       activeRenderer->mesh = activeRenderer->mesh.subdivide();
+      break;
+    case 'w':
+      activeRenderer->toggleDrawWireframe();
+      break;
+    case 'd':
+      activeRenderer->toggleDrawNormal();
       break;
   }
   glutPostRedisplay();
@@ -165,6 +163,8 @@ Renderer::Renderer()
   orientation = identity3D();
   imgSaver = new ImageSaver("images/", "cs284-subdivision_");
   fCount = 0;
+  draw_normal = true;
+  draw_wireframe = true;
 }
 
 Renderer::~Renderer()
@@ -245,7 +245,31 @@ void Renderer::mainLoop()
 
 void Renderer::draw()
 {
-  mesh.draw();
+  //normal
+  if (draw_normal)
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    mesh.draw();
+  }
+
+  //Wireframe
+  if (draw_wireframe)
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonOffset(1,1);
+    glUniform4fv(diffuse,1,blue); 
+    mesh.draw();
+  }
+}
+
+void Renderer::toggleDrawNormal()
+{
+  draw_normal ^= 1;
+}
+
+void Renderer::toggleDrawWireframe()
+{
+  draw_wireframe ^= 1;
 }
 
 void Renderer::saveFrame() {
