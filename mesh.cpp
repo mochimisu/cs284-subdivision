@@ -64,7 +64,10 @@ void Mesh::loadOBJ(string obj_fname)
         if (splitline[0].length() > 1 && splitline[0][1] == 'n'){
           normals.push_back(vec3(atof(splitline[1].c_str()),
                 atof(splitline[2].c_str()),atof(splitline[3].c_str())));
-        } else {
+        } else if (splitline[0].length() > 1 && splitline[0][1] == 't'){
+          //texture, take care of this later
+        }
+        else {
           verts.push_back(vec3(atof(splitline[1].c_str()),
                 atof(splitline[2].c_str()),atof(splitline[3].c_str())));
         }
@@ -74,20 +77,32 @@ void Mesh::loadOBJ(string obj_fname)
         int v1, v2, v3;
         int n1, n2, n3;
         //find "type"
-        int numSlash = 0;
+        int num_slash = 0;
+        bool double_slash = false;
         for (unsigned int i=0; i<splitline[1].length(); i++) {
-          if(splitline[1][i] == '/')
-            numSlash++;
+          if (splitline[1][i] == '/')
+          {
+            num_slash++;
+            if (i+1 < splitline[1].length() && splitline[1][i+1] == '/')
+            {
+              double_slash = true;
+            }
+          }
         }
         //cout << numSlash << endl;
-        if (numSlash == 0) {
+        if (num_slash == 0) {
           sscanf(line.c_str(), "f %d %d %d", &v1, &v2, &v3);
           raw_faces.push_back(vec3(v1-1,v2-1,v3-1));
-        } else if (numSlash == 1) {
+        } else if (num_slash == 1) {
           sscanf(line.c_str(), "f %d/%*d %d/%*d %d/%*d", &v1, &v2, &v3);
           raw_faces.push_back(vec3(v1-1,v2-1,v3-1));
-        } else if (numSlash == 2) {
-          sscanf(line.c_str(), "f %d//%d %d//%d %d//%d", &v1, &n1, &v2, &n2, &v3, &n3);
+        } else if (num_slash == 2) {
+          if (double_slash)
+          {
+            sscanf(line.c_str(), "f %d//%d %d//%d %d//%d", &v1, &n1, &v2, &n2, &v3, &n3);
+          } else {
+            sscanf(line.c_str(), "f %d/%*d/%d %d/%*d/%d %d/%*d/%d", &v1, &n1, &v2, &n2, &v3, &n3);
+          }
           raw_faces.push_back(vec3(v1-1,v2-1,v3-1));
           raw_faces_normals.push_back(vec3(n1-1,n2-1,n3-1));
         } else {
@@ -346,11 +361,13 @@ Mesh Mesh::subdivide()
       Edge new_e2 = Edge();
       new_e2.vert = sibling_edge.vert;
       new_e2.index = n_mesh.edges.size();
+      new_e2.next = -1;
       n_mesh.edges.push_back(new_e2);
 
       Edge new_e3 = Edge();
       new_e3.vert = edge_split_verts[i];
       new_e3.index = n_mesh.edges.size();
+      new_e3.next = -1;
       n_mesh.edges.push_back(new_e3);
 
       n_mesh.edges[new_e0.index].sibling = new_e3.index;
@@ -472,6 +489,30 @@ Mesh Mesh::subdivide()
     n_mesh.triangles.push_back(n_tri);
 
   }
+
+  //go through edges and find broken ones...
+  for (unsigned int i = 0; i < n_mesh.edges.size(); ++i)
+  {
+    if (n_mesh.edges[i].next < 0)
+    {
+      for (unsigned int j = 0; j < n_mesh.edges.size(); ++j)
+      {
+        if (n_mesh.edges[j].index > i)
+          n_mesh.edges[j].index--;
+        if (n_mesh.edges[j].sibling > i)
+          n_mesh.edges[j].sibling--;
+        if (n_mesh.edges[j].next > i)
+          n_mesh.edges[j].next--;
+      }
+      for (unsigned int j = 0; j < n_mesh.triangles.size(); ++j)
+      {
+        if (n_mesh.triangles[j].edge > i)
+          n_mesh.triangles[j].edge--;
+      }
+      n_mesh.edges.erase(n_mesh.edges.begin()+i);
+    }
+  }
+
 
   //keep this to debug later
 #ifdef DEBUG

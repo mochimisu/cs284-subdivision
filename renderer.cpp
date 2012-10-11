@@ -12,6 +12,7 @@ const GLfloat light_specular[] = {0.6,0.6,0.6,1};    // Specular of light 0
 const GLfloat light_specular1[] = {0.6,0.6,0.6,1};   // Specular of light 1
 const GLfloat one[] = {1,1,1,1};                 // Specular on teapot
 const GLfloat medium[] = {1,1,1,1};        // Diffuse on teapot
+const GLfloat blue[] = {0,0,1,1};        // Diffuse on teapot
 const GLfloat small[] = {0.2,0.2,0.2,1};         // Ambient on teapot
 const GLfloat none[] = {0,0,0,1};
 const GLfloat red[] = {1,0,0,1};
@@ -84,12 +85,14 @@ void display()
   glUniform1fv(shininess,1,high); 
   glUniform1i(islight,true);
 
+  //Normal
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  activeRenderer->draw();
+
   //Wireframe
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-  //Normal
-  //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+  glPolygonOffset(1,1);
+  glUniform4fv(diffuse,1,blue); 
   activeRenderer->draw();
 
   glutSwapBuffers();
