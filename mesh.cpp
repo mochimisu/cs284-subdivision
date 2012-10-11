@@ -296,8 +296,10 @@ Mesh Mesh::subdivide()
         + vertices[edges[edges[i].next].vert].pos);
     if (edges[i].sibling >= 0)
     {
-      vec3 sum_conntri = (vertices[edges[edges[edges[i].next].next].vert].pos \
-          +vertices[edges[edges[edges[edges[i].sibling].next].next].vert].pos);
+      int ind_conntri0 = edges[edges[edges[i].next].next].vert;
+      int ind_conntri1 = edges[edges[edges[edges[i].sibling].next].next].vert;
+      vec3 sum_conntri = (vertices[ind_conntri0].pos + \
+          vertices[ind_conntri1].pos);
       v_split.pos = (0.375*sum_endpts) + (0.125*sum_conntri);
     } else {
       vec3 conntri = vertices[edges[edges[edges[i].next].next].vert].pos;
@@ -400,16 +402,6 @@ Mesh Mesh::subdivide()
     //1: s0.1->s1.0->n4
     //2: s1.1->s2.0->n5
     //3: n0->n1->n2
-    Triangle tri0 = Triangle();
-    tri0.index = n_mesh.triangles.size();
-    tri0.edge = split_edge[2].second;
-    n_mesh.edges[split_edge[2].second].next = split_edge[0].first;
-    n_mesh.edges[split_edge[0].first].next = new_edge[3];
-    n_mesh.edges[new_edge[3]].next = split_edge[2].second;
-    n_mesh.edges[split_edge[2].second].tri = tri0.index;
-    n_mesh.edges[split_edge[0].second].tri = tri0.index;
-    n_mesh.edges[new_edge[3]].tri = tri0.index;
-    n_mesh.triangles.push_back(tri0);
 
     for (unsigned int j = 0; j < 3; ++j)
     {
