@@ -6,8 +6,8 @@
 #include "mesh.h"
 
 // Constants to set up lighting on the teapot
-const GLfloat light_position[] = {0,5,10,1};    // Position of light 0
-const GLfloat light_position1[] = {0,5,-10,1};  // Position of light 1
+const GLfloat light_position[] = {0,15,10,1};    // Position of light 0
+const GLfloat light_position1[] = {0,15,-10,1};  // Position of light 1
 const GLfloat light_specular[] = {0.6,0.6,0.6,1};    // Specular of light 0
 const GLfloat light_specular1[] = {0.6,0.6,0.6,1};   // Specular of light 1
 const GLfloat one[] = {1,1,1,1};                 // Specular on teapot

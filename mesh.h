@@ -16,6 +16,7 @@ class Vertex {
     ~Vertex() {};
     int index;
     vec3 pos;
+    vec3 norm;
 };
 
 class Edge {
@@ -26,7 +27,6 @@ class Edge {
     int sibling;
     int next;
     int vert;
-    vec3 norm;
     int tri;
 };
 
@@ -35,6 +35,7 @@ class Triangle {
     Triangle() {};
     ~Triangle() {};
     int index;
+    vec3 norm;
     int edge;
 };
 

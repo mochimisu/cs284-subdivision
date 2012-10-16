@@ -163,23 +163,31 @@ void Mesh::loadOBJ(string obj_fname)
       Edge& e0 = edges[edge_n++];
       e0.index = edge_n-1;
       e0.vert = (int)cur_indices[0];
-      e0.norm = normals[(int)cur_n[0]];
+      //e0.norm = normals[(int)cur_n[0]];
       e0.tri = tri.index;
       e0.sibling = -1;
 
       Edge& e1 = edges[edge_n++];
       e1.index = edge_n-1;
       e1.vert = (int)cur_indices[1];
-      e1.norm = normals[(int)cur_n[1]];
+      //e1.norm = normals[(int)cur_n[1]];
       e1.tri = tri.index;
       e1.sibling = -1;
 
       Edge& e2 = edges[edge_n++];
       e2.index = edge_n-1;
       e2.vert = (int)cur_indices[2];
-      e2.norm = normals[(int)cur_n[2]];
+      //e2.norm = normals[(int)cur_n[2]];
       e2.tri = tri.index;
       e2.sibling = -1;
+
+      //normal
+      vec3 veca = vertices[(int)cur_indices[1]].pos \
+                  - vertices[(int)cur_indices[0]].pos;
+      vec3 vecb = vertices[(int)cur_indices[2]].pos \
+                  - vertices[(int)cur_indices[0]].pos;
+      vec3 n = veca ^ vecb;
+      tri.norm = n;
 
       tri.edge = e0.index;
 
@@ -235,12 +243,49 @@ void Mesh::generateBuffers()
   n_buf.clear();
   index_buf.clear();
 
+  //now go through all tris' and make normals on vertices
+  map<int,int> num_norms;
+
+  //clear normals
+  for (unsigned int i = 0; i < vertices.size(); ++i)
+  {
+    vertices[i].norm = vec3(0,0,0);
+    num_norms[i] = 0;
+  }
+
+  //go through tri's and add their norms to the edges they touch
+  for (unsigned int i = 0; i < triangles.size(); ++i)
+  {
+    Triangle& cur_tri = triangles[i];
+    int cur_edge_ind = cur_tri.edge;
+    for (unsigned int j = 0; j < 3; ++j)
+    {
+      Edge& cur_edge = edges[cur_edge_ind];
+      vertices[cur_edge.vert].norm += cur_tri.norm;
+      num_norms[i] += 1; //later weigh this by area or something
+      cur_edge_ind = cur_edge.next;
+    }
+  }
+
+  //now divide
+  for (unsigned int i = 0; i < vertices.size(); ++i)
+  {
+    int cur_num_norms = num_norms[i];
+    if (cur_num_norms > 0)
+      vertices[i].norm /= (float)cur_num_norms;
+  }
+
   //int index = 0;
   for (vector<Vertex>::iterator v = vertices.begin(); v != vertices.end(); ++v)
   {
     pos_buf.push_back(v->pos[0]);
     pos_buf.push_back(v->pos[1]);
     pos_buf.push_back(v->pos[2]);
+
+    //assume normals are also defined in the vert
+    n_buf.push_back(v->norm[0]);
+    n_buf.push_back(v->norm[1]);
+    n_buf.push_back(v->norm[2]);
     //v->index = index++;
   }
 
@@ -281,7 +326,9 @@ void Mesh::draw()
   for (vector<int>::iterator i = index_buf.begin(); i != index_buf.end(); ++i)
   {
     float* cur_vert = &pos_buf[(*i)*3];
+    float* cur_n = &n_buf[(*i)*3];
     glVertex3f(cur_vert[0], cur_vert[1], cur_vert[2]);
+    glNormal3f(cur_n[0], cur_n[1], cur_n[2]);
   }
   glEnd();
 }
@@ -472,6 +519,16 @@ Mesh Mesh::subdivide()
       n_mesh.edges[split_edge[sfirst].second].tri = n_tri.index;
       n_mesh.edges[split_edge[ssecond].first].tri = n_tri.index;
       n_mesh.edges[new_edge[nthird]].tri = n_tri.index;
+
+      // normal:
+      vec3 veca = \
+           n_mesh.vertices[n_mesh.edges[split_edge[sfirst].second].vert].pos \
+           - n_mesh.vertices[n_mesh.edges[split_edge[ssecond].first].vert].pos;
+      vec3 vecb = \
+           n_mesh.vertices[n_mesh.edges[new_edge[nthird]].vert].pos \
+           - n_mesh.vertices[n_mesh.edges[split_edge[ssecond].first].vert].pos;
+      vec3 n = vecb ^ veca;
+      n_tri.norm = n;
       n_mesh.triangles.push_back(n_tri);
     }
 
@@ -486,9 +543,24 @@ Mesh Mesh::subdivide()
     n_mesh.edges[new_edge[0]].tri = n_tri.index;
     n_mesh.edges[new_edge[1]].tri = n_tri.index;
     n_mesh.edges[new_edge[2]].tri = n_tri.index;
+
+
+    //normal
+    vec3 veca = n_mesh.vertices[n_mesh.edges[new_edge[1]].vert].pos \
+                - n_mesh.vertices[n_mesh.edges[new_edge[0]].vert].pos;
+    vec3 vecb = n_mesh.vertices[n_mesh.edges[new_edge[2]].vert].pos \
+                - n_mesh.vertices[n_mesh.edges[new_edge[0]].vert].pos;
+    vec3 n = vecb ^ veca;
+    n_tri.norm = n;
+
+
     n_mesh.triangles.push_back(n_tri);
 
   }
+
+
+
+
 
 #ifdef CLEANUP_EDGES
   //go through edges and find broken ones...
