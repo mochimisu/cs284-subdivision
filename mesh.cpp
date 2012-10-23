@@ -430,6 +430,7 @@ Mesh Mesh::subdivide()
     new_e0.sibling = -1;
     new_e0.next = -1;
     new_e0.tri = -1;
+    new_e0.tex = cur_edge.tex;
     n_mesh.edges.push_back(new_e0);
 
     Edge new_e1 = Edge();
@@ -438,6 +439,7 @@ Mesh Mesh::subdivide()
     new_e1.sibling = -1;
     new_e1.next = -1;
     new_e1.tri = -1;
+    new_e1.tex = (cur_edge.tex + edges[cur_edge.next].tex)/2;
     n_mesh.edges.push_back(new_e1);
 
     if (edges[i].sibling >= 0) 
@@ -447,12 +449,14 @@ Mesh Mesh::subdivide()
       new_e2.vert = sibling_edge.vert;
       new_e2.index = n_mesh.edges.size();
       new_e2.next = -1;
+      new_e2.tex = sibling_edge.tex;
       n_mesh.edges.push_back(new_e2);
 
       Edge new_e3 = Edge();
       new_e3.vert = edge_split_verts[i];
       new_e3.index = n_mesh.edges.size();
       new_e3.next = -1;
+      new_e3.tex = (sibling_edge.tex + edges[sibling_edge.next].tex)/2;
       n_mesh.edges.push_back(new_e3);
 
       n_mesh.edges[new_e0.index].sibling = new_e3.index;
@@ -525,6 +529,7 @@ Mesh Mesh::subdivide()
       Edge n_edge = Edge();
       n_edge.index = n_mesh.edges.size();
       n_edge.vert = n_mesh.edges[split_edge[j%3].second].vert;
+      n_edge.tex = n_mesh.edges[split_edge[j%3].second].tex;
       n_mesh.edges.push_back(n_edge);
       new_edge[j] = n_edge.index;
     }
