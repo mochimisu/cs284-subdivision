@@ -12,7 +12,8 @@ varying vec4 myvertex ;
 varying vec2 mytexcoord;
 uniform sampler2D mytex;
 
-uniform int istex ; // are we lighting. 
+uniform int istex ;  
+uniform int islight ; // are we lighting. 
 
 // Assume light 0 and light 1 are both point lights
 // The actual light values are passed from the main OpenGL program. 
@@ -57,6 +58,11 @@ void main (void)
     cur_spec = texture2D(mytex, mytexcoord);
   }
 
+  gl_FragColor = cur_diff; 
+
+  if (islight == 1)
+  {
+
   const vec3 eyepos = vec3(0,0,0) ; 
   vec4 _mypos = gl_ModelViewMatrix * myvertex ; 
   vec3 mypos = _mypos.xyz / _mypos.w ; // Dehomogenize current location 
@@ -80,4 +86,5 @@ void main (void)
   vec4 col1 = ComputeLight(direction1, light1color, normal, half1, cur_diff, cur_spec, shininess) ;
 
   gl_FragColor = ambient + col0 + col1 ; 
+  }
 }

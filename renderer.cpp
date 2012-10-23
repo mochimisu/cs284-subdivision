@@ -22,6 +22,7 @@ GLfloat light0[4],light1[4];
 
 GLuint vertexshader, fragmentshader, shaderprogram ; // shaders
 GLuint istex; 
+GLuint islight; 
 GLuint light0posn; 
 GLuint light0color; 
 GLuint light1posn; 
@@ -32,6 +33,7 @@ GLuint specular;
 GLuint shininess; 
 
 GLuint tex;
+bool cur_islight;
 
 
 Renderer * activeRenderer;
@@ -126,6 +128,10 @@ void keyboard(unsigned char key, int x, int y)
       break;
     case 'd':
       activeRenderer->toggleDrawNormal();
+      break;
+    case 'l':
+      cur_islight = !cur_islight;
+      glUniform1i(islight,cur_islight);
       break;
   }
   glutPostRedisplay();
@@ -231,18 +237,21 @@ void Renderer::init(int argc,char** argv)
   //shaders
   vertexshader = initshaders(GL_VERTEX_SHADER,"shaders/light.vert.glsl");
   fragmentshader = initshaders(GL_FRAGMENT_SHADER,"shaders/light.frag.glsl");
-  shaderprogram = initprogram(vertexshader,fragmentshader); 
-  istex = glGetUniformLocation(shaderprogram,"istex");        
-  light0posn = glGetUniformLocation(shaderprogram,"light0posn");       
-  light0color = glGetUniformLocation(shaderprogram,"light0color");       
-  light1posn = glGetUniformLocation(shaderprogram,"light1posn");       
-  light1color = glGetUniformLocation(shaderprogram,"light1color");       
-  ambient = glGetUniformLocation(shaderprogram,"ambient");       
-  diffuse = glGetUniformLocation(shaderprogram,"diffuse");       
-  specular = glGetUniformLocation(shaderprogram,"specular");       
+  shaderprogram = initprogram(vertexshader,fragmentshader);
+  istex = glGetUniformLocation(shaderprogram,"istex");
+  islight = glGetUniformLocation(shaderprogram,"islight");
+  light0posn = glGetUniformLocation(shaderprogram,"light0posn");
+  light0color = glGetUniformLocation(shaderprogram,"light0color");
+  light1posn = glGetUniformLocation(shaderprogram,"light1posn");
+  light1color = glGetUniformLocation(shaderprogram,"light1color");
+  ambient = glGetUniformLocation(shaderprogram,"ambient");
+  diffuse = glGetUniformLocation(shaderprogram,"diffuse");
+  specular = glGetUniformLocation(shaderprogram,"specular");
 
-  shininess = glGetUniformLocation(shaderprogram,"shininess");       
-  
+  shininess = glGetUniformLocation(shaderprogram,"shininess");
+  glUniform1i(islight,true);
+  cur_islight = true;
+
   Mesh mesh;
   mesh.init();
   mesh.loadOBJ(argv[1]);
