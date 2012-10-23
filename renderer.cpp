@@ -34,6 +34,7 @@ GLuint shininess;
 
 GLuint tex;
 bool cur_islight;
+bool cur_istex;
 
 
 Renderer * activeRenderer;
@@ -257,12 +258,15 @@ void Renderer::init(int argc,char** argv)
   mesh.loadOBJ(argv[1]);
   meshes.push_back(mesh);
 
+  cur_istex = false;
+
   if (argc == 3)
   {
     //texture
     loadTexture(argv[2], tex);
     glEnable(GL_TEXTURE_2D);
     glUniform1i(istex,true);
+    cur_istex = true;
   }
 }
 
@@ -280,14 +284,17 @@ void Renderer::draw()
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex);
+    glUniform1i(istex,cur_istex);
     meshes.back().draw();
   }
 
   //Wireframe
   if (draw_wireframe)
   {
+    glDisable(GL_TEXTURE_2D);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonOffset(1,1);
+    glUniform1i(istex,false);
     glUniform4fv(diffuse,1,blue); 
     meshes.back().draw();
   }
