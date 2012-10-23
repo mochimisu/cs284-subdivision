@@ -35,9 +35,11 @@ void Mesh::loadOBJ(string obj_fname)
 {
   vector<vec3> verts;
   vector<vec3> normals;
+  vector<vec2> texture_coords;
   
   vector<vec3> raw_faces;
   vector<vec3> raw_faces_normals;
+  vector<vec3> raw_faces_texture_coords;
 
 
   ifstream inpfile(obj_fname.c_str());
@@ -66,6 +68,8 @@ void Mesh::loadOBJ(string obj_fname)
                 atof(splitline[2].c_str()),atof(splitline[3].c_str())));
         } else if (splitline[0].length() > 1 && splitline[0][1] == 't'){
           //texture, take care of this later
+          texture_coords.push_back(vec2(atof(splitline[1].c_str()),
+                atof(splitline[2].c_str())));
         }
         else {
           verts.push_back(vec3(atof(splitline[1].c_str()),
@@ -76,6 +80,7 @@ void Mesh::loadOBJ(string obj_fname)
       else if (splitline[0][0] == 'f') {
         int v1, v2, v3;
         int n1, n2, n3;
+        int t1, t2, t3;
         //find "type"
         int num_slash = 0;
         bool double_slash = false;
@@ -101,7 +106,8 @@ void Mesh::loadOBJ(string obj_fname)
           {
             sscanf(line.c_str(), "f %d//%d %d//%d %d//%d", &v1, &n1, &v2, &n2, &v3, &n3);
           } else {
-            sscanf(line.c_str(), "f %d/%*d/%d %d/%*d/%d %d/%*d/%d", &v1, &n1, &v2, &n2, &v3, &n3);
+            sscanf(line.c_str(), "f %d/%d/%d %d/%d/%d %d/%d/%d", &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3);
+            raw_faces_texture_coords.push_back(vec3(t1-1, t2-1, t3-1));
           }
           raw_faces.push_back(vec3(v1-1,v2-1,v3-1));
           raw_faces_normals.push_back(vec3(n1-1,n2-1,n3-1));
@@ -148,6 +154,7 @@ void Mesh::loadOBJ(string obj_fname)
     {
       vec3 cur_indices = raw_faces[i];
       vec3 cur_n = raw_faces_normals[i];
+
       vec3 navg = (normals[(int)cur_n[0]]
           + normals[(int)cur_n[1]]
           + normals[(int)cur_n[2]])/3.;
@@ -180,6 +187,14 @@ void Mesh::loadOBJ(string obj_fname)
       //e2.norm = normals[(int)cur_n[2]];
       e2.tri = tri.index;
       e2.sibling = -1;
+
+      if (i < raw_faces_texture_coords.size())
+      {
+        vec3 cur_tex = raw_faces_texture_coords[i];
+        e0.tex = texture_coords[cur_tex[0]];
+        e1.tex = texture_coords[cur_tex[1]];
+        e2.tex = texture_coords[cur_tex[2]];
+      }
 
       //normal
       vec3 veca = vertices[(int)cur_indices[1]].pos \
@@ -241,6 +256,7 @@ void Mesh::generateBuffers()
 {
   pos_buf.clear();
   n_buf.clear();
+  tex_buf.clear();
   index_buf.clear();
 
   //now go through all tris' and make normals on vertices
@@ -323,13 +339,35 @@ void Mesh::draw()
 
   //alternative while i figure out whats wrong with loading the buffers
   glBegin(GL_TRIANGLES);
+  for (vector<Triangle>::iterator tri = triangles.begin();
+      tri != triangles.end(); ++tri)
+  {
+    int cur_edge_ind = tri->edge;
+    for (unsigned int i = 0; i < 3; ++i)
+    {
+      Edge& cur_edge = edges[cur_edge_ind];
+      Vertex& cur_vert = vertices[cur_edge.vert];
+
+      glTexCoord2f(cur_edge.tex[0], cur_edge.tex[1]);
+      glVertex3f(cur_vert.pos[0], cur_vert.pos[1], cur_vert.pos[2]);
+      glNormal3f(cur_vert.norm[0], cur_vert.norm[1], cur_vert.norm[2]);
+      
+      cur_edge_ind = cur_edge.next;
+    }
+  }
+  /*
   for (vector<int>::iterator i = index_buf.begin(); i != index_buf.end(); ++i)
   {
     float* cur_vert = &pos_buf[(*i)*3];
     float* cur_n = &n_buf[(*i)*3];
+    if ((*i)*2 < tex_buf.size())
+    {
+      float* cur_tx = &tex_buf[(*i)*2];
+      glTexCoord(cur_tx[0], cur_tx[1]);
+    }
     glVertex3f(cur_vert[0], cur_vert[1], cur_vert[2]);
     glNormal3f(cur_n[0], cur_n[1], cur_n[2]);
-  }
+  }*/
   glEnd();
 }
 

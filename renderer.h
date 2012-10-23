@@ -5,6 +5,7 @@
 #include "imageSaver.h"
 #include <algebra3.h>
 #include "mesh.h"
+#include <vector>
 
 class Renderer {
 
@@ -25,7 +26,7 @@ class Renderer {
     ImageSaver * imgSaver;
     int fCount;
 
-    Mesh mesh;
+    vector<Mesh> meshes;
 
   protected:
     GLuint vertex_vbo;

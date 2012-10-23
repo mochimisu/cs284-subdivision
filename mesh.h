@@ -23,6 +23,7 @@ class Edge {
   public:
     Edge() {};
     ~Edge() {};
+    vec2 tex;
     int index;
     int sibling;
     int next;
@@ -58,6 +59,7 @@ class Mesh {
   private:
     vector<float> pos_buf;
     vector<float> n_buf;
+    vector<float> tex_buf;
     vector<int> index_buf;
 
     GLuint vertex_vbo;

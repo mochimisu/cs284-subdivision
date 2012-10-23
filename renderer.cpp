@@ -4,6 +4,7 @@
 #include "renderer.h"
 #include "shaders.h"
 #include "mesh.h"
+#include "loadimage.h"
 
 // Constants to set up lighting on the teapot
 const GLfloat light_position[] = {0,15,10,1};    // Position of light 0
@@ -20,7 +21,7 @@ const GLfloat high[] = {100};                      // Shininess of teapot
 GLfloat light0[4],light1[4]; 
 
 GLuint vertexshader, fragmentshader, shaderprogram ; // shaders
-GLuint islight; 
+GLuint istex; 
 GLuint light0posn; 
 GLuint light0color; 
 GLuint light1posn; 
@@ -29,6 +30,8 @@ GLuint ambient;
 GLuint diffuse; 
 GLuint specular; 
 GLuint shininess; 
+
+GLuint tex;
 
 
 Renderer * activeRenderer;
@@ -83,7 +86,6 @@ void display()
   //glUniform4fv(diffuse,1,small); 
   glUniform4fv(specular,1,none); 
   glUniform1fv(shininess,1,high); 
-  glUniform1i(islight,true);
 
   activeRenderer->draw();
 
@@ -110,7 +112,14 @@ void keyboard(unsigned char key, int x, int y)
       exit(0);
       break;
     case 'q':
-      activeRenderer->mesh = activeRenderer->mesh.subdivide();
+      activeRenderer->meshes.push_back(
+          activeRenderer->meshes.back().subdivide());
+      break;
+    case 'Q':
+      if (activeRenderer->meshes.size() > 1)
+      {
+        activeRenderer->meshes.pop_back();
+      }
       break;
     case 'w':
       activeRenderer->toggleDrawWireframe();
@@ -223,7 +232,7 @@ void Renderer::init(int argc,char** argv)
   vertexshader = initshaders(GL_VERTEX_SHADER,"shaders/light.vert.glsl");
   fragmentshader = initshaders(GL_FRAGMENT_SHADER,"shaders/light.frag.glsl");
   shaderprogram = initprogram(vertexshader,fragmentshader); 
-  islight = glGetUniformLocation(shaderprogram,"islight");        
+  istex = glGetUniformLocation(shaderprogram,"istex");        
   light0posn = glGetUniformLocation(shaderprogram,"light0posn");       
   light0color = glGetUniformLocation(shaderprogram,"light0color");       
   light1posn = glGetUniformLocation(shaderprogram,"light1posn");       
@@ -234,8 +243,18 @@ void Renderer::init(int argc,char** argv)
 
   shininess = glGetUniformLocation(shaderprogram,"shininess");       
   
+  Mesh mesh;
   mesh.init();
   mesh.loadOBJ(argv[1]);
+  meshes.push_back(mesh);
+
+  if (argc == 3)
+  {
+    //texture
+    loadTexture(argv[2], tex);
+    glEnable(GL_TEXTURE_2D);
+    glUniform1i(istex,true);
+  }
 }
 
 void Renderer::mainLoop() 
@@ -249,7 +268,10 @@ void Renderer::draw()
   if (draw_normal)
   {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    mesh.draw();
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    meshes.back().draw();
   }
 
   //Wireframe
@@ -258,7 +280,7 @@ void Renderer::draw()
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonOffset(1,1);
     glUniform4fv(diffuse,1,blue); 
-    mesh.draw();
+    meshes.back().draw();
   }
 }
 
